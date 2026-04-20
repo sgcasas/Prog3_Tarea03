@@ -103,8 +103,7 @@ public:
             for (const auto& arg : args) {
                 registro << " " << arg;
             }
-            registro << " | Antes: [" << antes.str() << "]"
-                     << " -> Después: [" << despues.str() << "]";
+            registro << " Antes: [" << antes.str() << "]"<< "\n Después: [" << despues.str() << "]";
             history.push_back(registro.str());
         } else {
             cout<<"Error, el comando no existe"<<endl;
