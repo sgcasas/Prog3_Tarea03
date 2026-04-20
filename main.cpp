@@ -1,8 +1,10 @@
+#include <functional>
 #include <iostream>
 #include <vector>
 #include <string>
 #include <list>
 #include <map>
+#include <sstream>
 using namespace std;
 
 class Entity {
@@ -23,6 +25,20 @@ public:
         nivel = 1;
         posicion = {0,0};
     }
+    int getVida() {
+        return vida;
+    };
+    int getRecursos() {
+        return recursos;
+    };
+    int getNivel() {
+        return nivel;
+    };
+    vector<int> getPosicion() {
+        return posicion;
+    };
+
+
     void status() {
         cout<<"Nombre: "<<nombre<<endl;
         cout<<"Nivel: "<<nivel<<endl;
@@ -32,7 +48,7 @@ public:
     }
 };
 
-using Command = function<void(const list<string>&)>;
+using Command = std :: function < void ( const std :: list < std :: string >&) >;
 
 void commandDamage(Entity& entity, const list<string>& args) {
     if (args.empty()) {
@@ -77,37 +93,48 @@ public:
     void execute(const string& nombre, const list<string>& args) {
         map<string, Command>::iterator it = commands.find(nombre);
         if (it != commands.end()) {
+            std::ostringstream antes;
+            antes << "Vida=" << entity.getVida() << "Nivel=" << entity.getNivel() <<  "Recursos=" << entity.getRecursos() << "Posicion=" << entity.getPosicion()[0] << "," << entity.getPosicion()[1] << endl;
             it->second(args);
-            history.push_back(nombre);
+            std ::ostringstream despues;
+            despues << "Vida=" << entity.getVida() << "Nivel=" << entity.getNivel() <<  "Recursos=" << entity.getRecursos() << "Posicion=" << entity.getPosicion()[0] << "," << entity.getPosicion()[1] << endl;
+            std::ostringstream registro;
+            registro << nombre;
+            for (const auto& arg : args) {
+                registro << " " << arg;
+            }
+            registro << " | Antes: [" << antes.str() << "]"
+                     << " -> Después: [" << despues.str() << "]";
+            history.push_back(registro.str());
         } else {
             cout<<"Error, el comando no existe"<<endl;
         }
     }
 };
 
-int main() {
-    Entity jugador("Jugador", 100, 10, 1);
-    CommandCenter center(jugador);
-    HealFunctor healFunctor(jugador);
-    center.registerCommand("damage", [&jugador](const list<string>& args) {
-        commandDamage(jugador, args);
-    });
-    center.registerCommand("move", [&jugador](const list<string>& args) {
-        if (args.size() < 2) {
-            cout<<"Error, el comando requiere dos argumentos"<<endl;
-            return;
-        }
-        auto p = args.begin();
-        try {
-            int x = stoi(*p);
-            p++;
-            int y = stoi(*p);
-            jugador.movexy(x, y);
+    int main() {
+        Entity jugador("Jugador", 100, 10, 1);
+        CommandCenter center(jugador);
+        HealFunctor healFunctor(jugador);
+        center.registerCommand("damage", [&jugador](const list<string>& args) {
+            commandDamage(jugador, args);
+        });
+        center.registerCommand("move", [&jugador](const list<string>& args) {
+            if (args.size() < 2) {
+                cout<<"Error, el comando requiere dos argumentos"<<endl;
+                return;
+            }
+            auto p = args.begin();
+            try {
+                int x = stoi(*p);
+                p++;
+                int y = stoi(*p);
+                jugador.movexy(x, y);
 
-        } catch (invalid_argument&) {
-            cout<<"Error, el comando requiere dos argumentos numericos"<<endl;
-        }
-    });
-    center.registerCommand("heal", healFunctor);
-    return 0;
-}
+            } catch (invalid_argument&) {
+                cout<<"Error, el comando requiere dos argumentos numericos"<<endl;
+            }
+        });
+        center.registerCommand("heal", healFunctor);
+        return 0;
+    }
