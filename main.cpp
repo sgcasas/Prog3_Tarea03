@@ -42,7 +42,7 @@ public:
     void status() {
         cout<<"Nombre: "<<nombre<<endl;
         cout<<"Nivel: "<<nivel<<endl;
-        cout<<"Posicion: "<<posicion[0]<<" "<<posicion[1]<<endl;
+        cout<<"Posicion: "<<posicion[0]<<", "<<posicion[1]<<endl;
         cout<<"Vida: "<<vida<<endl;
         cout<<"Recursos: "<<recursos<<endl;
     }
@@ -80,6 +80,10 @@ public:
         }
     }
 };
+struct Macrostep {
+    string name;
+    list<string> args;
+};
 
 class CommandCenter {
     map<string, Command> commands;
@@ -94,26 +98,61 @@ public:
         map<string, Command>::iterator it = commands.find(nombre);
         if (it != commands.end()) {
             std::ostringstream antes;
-            antes << "Vida=" << entity.getVida() << "Nivel=" << entity.getNivel() <<  "Recursos=" << entity.getRecursos() << "Posicion=" << entity.getPosicion()[0] << "," << entity.getPosicion()[1] << endl;
+            antes << "Vida = " << entity.getVida() << " Nivel = " << entity.getNivel() <<  " Recursos = " << entity.getRecursos() << " Posicion = " << entity.getPosicion()[0] << "," << entity.getPosicion()[1] << endl;
             it->second(args);
             std ::ostringstream despues;
-            despues << "Vida=" << entity.getVida() << "Nivel=" << entity.getNivel() <<  "Recursos=" << entity.getRecursos() << "Posicion=" << entity.getPosicion()[0] << "," << entity.getPosicion()[1] << endl;
+            despues << "Vida = " << entity.getVida() << " Nivel = " << entity.getNivel() <<  " Recursos = " << entity.getRecursos() << " Posicion = " << entity.getPosicion()[0] << "," << entity.getPosicion()[1] << endl;
             std::ostringstream registro;
             registro << nombre;
             for (const auto& arg : args) {
                 registro << " " << arg;
             }
-            registro << " | Antes: [" << antes.str() << "]"
-                     << " -> Después: [" << despues.str() << "]";
+            registro << " |Antes: " << antes.str() << ""<< "\n          |Despues: " << despues.str() << "";
             history.push_back(registro.str());
         } else {
             cout<<"Error, el comando no existe"<<endl;
         }
     }
+    void historial() {
+        cout << "Historial:" << endl;
+        std::list<std::string>::iterator it;
+        for (it = history.begin(); it != history.end(); ++it) {
+            cout << *it << endl;
+        }
+    }
+    void removeCommand(const string& nombre) {
+        auto it = commands.find(nombre);
+        if (it != commands.end()) {
+            commands.erase(it);
+            cout << "Comando"<< nombre << " eliminado." << endl;
+        }
+        else cout << "Error, el comando no existe." << endl;
+    }
+    map<string, list<Macrostep>> macros;
+    void registerMacro (const string & name, const list <pair<string , list <string>>>& steps){
+        list<Macrostep> macro;
+        for (const auto& step : steps) {
+            macro.push_back({step.first, step.second});
+        }
+        macros[name] = macro;
+    };
+    void executeMacro ( const string & name) {
+        auto it = macros.find(name);
+
+        if (it == macros.end()) {
+            cout << "Error, macro no existe" << endl;
+            return;
+        }
+
+        for (const auto& step : it->second) {
+            execute(step.name, step.args);
+        }
+    } ;
 };
 
+
     int main() {
-        Entity jugador("Jugador", 100, 10, 1);
+        Entity jugador("Player", 100, 10, 1);
         CommandCenter center(jugador);
         HealFunctor healFunctor(jugador);
         center.registerCommand("damage", [&jugador](const list<string>& args) {
@@ -136,5 +175,38 @@ public:
             }
         });
         center.registerCommand("heal", healFunctor);
-        return 0;
+        // Comandos validos
+        center.execute("move", {"2,", "3"});
+        center.execute("damage", {"20"});
+        center.execute("heal", {"10"});
+        //Comandos invalidos
+        center.execute("move", {"a,", "b"});
+        center.execute("damage", {});
+        center.execute("inexistente", {"10"});
+
+        // macrocomando 1
+        center.registerMacro("macro1", {
+            {"move", {"1,", "1"}},
+            {"damage", {"5"}},
+            {"heal", {"3"}}
+        });
+        // macrocomando 2
+        center.registerMacro("macro2", {
+            {"move", {"-2,", "4"}},
+            {"damage", {"15"}}
+        });
+        // macrocomando 3 (con error)
+        center.registerMacro("macroError", {
+            {"move", {"1,", "1"}},
+            {"comandoInvalido", {"10"}},
+            {"heal", {"5"}}
+        });
+        // Ejecutar macros
+        center.executeMacro("macro1");
+        center.executeMacro("macro2");
+        center.executeMacro("macroError");
+        // Estado Final
+        jugador.status();
+        // Mostrar Historial
+        center.historial();
     }
