@@ -45,6 +45,7 @@ public:
         cout<<"Posicion: "<<posicion[0]<<", "<<posicion[1]<<endl;
         cout<<"Vida: "<<vida<<endl;
         cout<<"Recursos: "<<recursos<<endl;
+
     }
 };
 
