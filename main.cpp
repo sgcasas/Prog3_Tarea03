@@ -89,6 +89,7 @@ class CommandCenter {
     map<string, Command> commands;
     list<string> history;
     Entity& entity;
+    map<string, list<Macrostep>> macros;
 public:
     CommandCenter(Entity& entity) : entity(entity) {}
     void registerCommand(const string& nombre, Command cmd) {
@@ -124,11 +125,10 @@ public:
         auto it = commands.find(nombre);
         if (it != commands.end()) {
             commands.erase(it);
-            cout << "Comando"<< nombre << " eliminado." << endl;
+            cout << "Comando "<< nombre << " eliminado." << endl;
         }
         else cout << "Error, el comando no existe." << endl;
     }
-    map<string, list<Macrostep>> macros;
     void registerMacro (const string & name, const list <pair<string , list <string>>>& steps){
         list<Macrostep> macro;
         for (const auto& step : steps) {
@@ -144,8 +144,14 @@ public:
             return;
         }
 
-        for (const auto& step : it->second) {
-            execute(step.name, step.args);
+        list<Macrostep>::iterator stepIt;
+        for (stepIt = it->second.begin(); stepIt != it->second.end(); ++stepIt) {
+            auto cmdIt = commands.find(stepIt->name);
+            if (cmdIt == commands.end()) {
+                cout<<"Error, el comando "<<stepIt->name<<" no existe"<<endl;
+                return;
+            }
+            execute(stepIt->name, stepIt->args);
         }
     } ;
 };
@@ -176,7 +182,7 @@ public:
         });
         center.registerCommand("heal", healFunctor);
         // Comandos validos
-        center.execute("move", {"2,", "3"});
+        center.execute("move", {"2", "3"});
         center.execute("damage", {"20"});
         center.execute("heal", {"10"});
         //Comandos invalidos
@@ -186,18 +192,18 @@ public:
 
         // macrocomando 1
         center.registerMacro("macro1", {
-            {"move", {"1,", "1"}},
+            {"move", {"1", "1"}},
             {"damage", {"5"}},
             {"heal", {"3"}}
         });
         // macrocomando 2
         center.registerMacro("macro2", {
-            {"move", {"-2,", "4"}},
+            {"move", {"-2", "4"}},
             {"damage", {"15"}}
         });
         // macrocomando 3 (con error)
         center.registerMacro("macroError", {
-            {"move", {"1,", "1"}},
+            {"move", {"1", "1"}},
             {"comandoInvalido", {"10"}},
             {"heal", {"5"}}
         });
